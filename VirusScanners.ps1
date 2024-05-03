@@ -13,7 +13,10 @@ foreach ($subKey in $subKeys) {
     if ($osType -eq 0 -or $osType -eq 1 -or $osType -eq 4 -or $osType -eq 5) {
         # Get the ProgLocation value
         $progLocation = (Get-ItemProperty -Path $subKey.PSPath -Name "ProgLocation" -ErrorAction SilentlyContinue).ProgLocation
-        Write-Output "TESTING: $progLocation"
+
+        # Initialize fullPath
+        $fullPath = $null
+
         # Check if ProgLocation value exists
         if ($progLocation) {
             # Check if ProgLocation points to a registry key and value pair
@@ -26,21 +29,26 @@ foreach ($subKey in $subKeys) {
                 # Get the value from the specified registry key
                 $resolvedPath = (Get-ItemProperty -Path "Registry::$registryKey" -Name $registryValue -ErrorAction SilentlyContinue).$registryValue
 
-                # Append the remaining path
-                $fullPath = Join-Path -Path $resolvedPath -ChildPath $remainingPath
+                # Check if resolvedPath is not null
+                if ($resolvedPath) {
+                    # Append the remaining path
+                    $fullPath = Join-Path -Path $resolvedPath -ChildPath $remainingPath
+                } else {
+                    #Path does not exist
+                }
             } else {
                 # Set fullPath to ProgLocation
                 $fullPath = $progLocation
             }
+        }
 
-            # Check if fullPath is not empty and points to a valid location
-            if ($fullPath -and (Test-Path $fullPath -PathType 'Leaf' -ErrorAction SilentlyContinue)) {
-                Write-Output "Resolved path found for subkey $($subKey.Name): $fullPath"
-                # Output the ID field if it exists
-                $idField = (Get-ItemProperty -Path $subKey.PSPath -Name "ID" -ErrorAction SilentlyContinue).ID
-                if ($idField) {
-                    Write-Output "ID: $idField"
-                }
+        # Check if fullPath is not empty and points to a valid location
+        if ($fullPath -and (Test-Path $fullPath -PathType 'Leaf' -ErrorAction SilentlyContinue)) {
+            #Write-Output "Resolved path found for subkey $($subKey.Name): $fullPath"
+            # Output the ID field if it exists
+            $idField = (Get-ItemProperty -Path $subKey.PSPath -Name "ID" -ErrorAction SilentlyContinue).ID
+            if ($idField) {
+                Write-Output "Detected VScanID: $idField"
             }
         }
     }
